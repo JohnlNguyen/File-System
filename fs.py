@@ -1,47 +1,45 @@
 # README.TXT
 
-import os
 
-freelist = [None] * 5 # freelist = [A, A, A, None, None]
-filelist = []
-fd = None
+import os
+SystemSize = 0
+freeList = []
+fileList = []
 
 def init(fsname):
-  size = 5 # TODO: get fsname's size
-  #nfile = open(fsname) # open the file
-  fd = open(fsname)
-  
+    fd = open(fsname, "w")
+    fd.write("a" * 5) #Change 5 to be what we want the size of the system to be
+    fd.close()
+    pwd = os.getcwd() + "/" + str(fsname)
+    global SystemSize
+    global freeList
+    SystemSize = os.path.getsize(pwd)
+    freeList = [None] * SystemSize
+
 def create(filename, nbytes):
-  tempfile = file(filename, nbytes)
-  name = filename
-  size = nbytes # size of file
-  occupied = 0
-  content = [None] * size
-  filelist.append(tempfile) # appended file object to file list
-  # TODO: NOT ENOUGH SPACE???
-  spaceneeded = nbytes # file system = 5 bytes, file A needed 3 bytes
-  for pos in range(0, len(freelist)):
-    if freelist[pos] is None:
-      freelist[pos] = filename
-      spaceneeded = spaceneeded - 1
-    if spaceneeded == 0:
-      break
-  
-class file:
-  def __init__(self, filename, nbytes):
-    self.name = filename
-    self.size = nbytes # size of file
-    self.occupied = 0
-    self.content = [None] * self.size
+    new = File(filename, nbytes)
+    fileList.append(new)  # appended file object to file list
+    global SystemSize
+    if (nbytes > SystemSize):
+        raise Exception('No More Space')
+    for pos in range(len(freeList)):
+        if nbytes == 0:
+            break
+        if freeList[pos] is None and (nbytes <= SystemSize):
+            freeList[pos] = filename
+            nbytes -= 1
+            SystemSize -= 1
 
 
-'''
->>> import fs
->>> fs.init("abc.txt")
->>> fs.create("x", 2)
->>> fs.freelist
-['x', 'x', None, None, None]
->>> fs.create("y", 1)
->>> fs.freelist
-['x', 'x', 'y', None, None]
-'''
+
+class File:
+    def __init__(self, filename, size):
+        self.name = filename
+        self.size = size  # size of file
+        self.occupied = 0
+        self.content = [None] * self.size
+
+init("abc.txt")
+create("x",3)
+create("y",1)
+print freeList
