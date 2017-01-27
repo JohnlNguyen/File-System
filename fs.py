@@ -2,20 +2,19 @@
 
 
 import os
-SystemSize = 5
-freeList = [None]*SystemSize  # freelist = [A, A, A, None, None]
+SystemSize = 0
+freeList = []
 fileList = []
-fd = None
-
-
 
 def init(fsname):
     fd = open(fsname, "w")
-    fd.write("\0" * 5)
+    fd.write("a" * 5) #Change 5 to be what we want the size of the system to be
+    fd.close()
     pwd = os.getcwd() + "/" + str(fsname)
-    size = os.path.getsize(pwd)
-    print size
-
+    global SystemSize
+    global freeList
+    SystemSize = os.path.getsize(pwd)
+    freeList = [None] * SystemSize
 
 def create(filename, nbytes):
     new = File(filename, nbytes)
