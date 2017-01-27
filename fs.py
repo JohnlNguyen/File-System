@@ -14,7 +14,7 @@ systemName = ""
 
 def init(fsname):
     fd = io.open(fsname, 'wb')
-    fd.write("a" * 5)  # Change 5 to be what we want the size of the system to be
+    fd.write("a" * 10)  # Change 5 to be what we want the size of the system to be
     fd.close()
     pwd = os.getcwd() + "/" + str(fsname)
     global SystemSize
@@ -106,11 +106,71 @@ def read(fd, nbytes):
 
     return tempString
 
+def readlines(fd):
+    global SystemSize
+    global freeList
+    currLine = ""
+    fileLines = []
+    try:
+        file = fileList[fd]  # assign File object at pathToFile
+    except KeyError:
+        raise Exception("No such file descriptor.")
+    if file.read is not True:
+        raise Exception("Error: No permission to read this file!")
+    for byte in file.content:
+        currLine += byte
+        if byte == "\n":
+            fileLines.append(currLine)
+            currLine = ""
+    if currLine != "":
+        fileLines.append(currLine)
+    return fileLines
 
-init("abc.txt")
-create("x", 3)
-create("y", 1)
-open("x", "w")
-write("/x", "r")
-open("x", "r")
-close("/x")
+
+def length(fd):
+    global SystemSize
+    global freeList
+
+    if fd not in fileList:
+        raise Exception("No such file descriptor.")
+    file = fileList[fd]  # assign File object at pathToFile
+    return file.occupied
+
+
+def pos(fd):
+    global SystemSize
+    global freeList
+
+    if fd not in fileList:
+        raise Exception("No such file descriptor.")
+    file = fileList[fd]  # assign File object at pathToFile
+    return file.position
+
+
+def seek(fd, pos):
+    global SystemSize
+    global freeList
+
+    if fd not in fileList:
+        raise Exception("No such file descriptor.")
+    file = fileList[fd]  # assign File object at pathToFile
+    if pos < 0 or pos > file.size or pos > file.occupied:
+        raise Exception("Incorrect position")
+    file.position = pos
+    print file.position
+
+
+def tester():
+    init("abc.txt")
+    create("x", 7)
+    open("x", "w")
+    write("/x", "b\na\n")
+    open("x", "r")
+    print read("/x", 2)
+    close("/x")
+    print pos("/x")
+    seek("/x", 4)
+    print length("/x")
+
+
+tester()
