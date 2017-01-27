@@ -10,10 +10,12 @@ fd = None
 
 
 def init(fsname):
+    fd = open(fsname, "w")
+    fd.write("\0" * 5)
     pwd = os.getcwd() + "/" + str(fsname)
     size = os.path.getsize(pwd)
     print size
-    fd = open(fsname)
+
 
 def create(filename, nbytes):
     new = File(filename, nbytes)
