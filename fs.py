@@ -8,6 +8,7 @@ from file import File
 SystemSize = 0
 freeList = []
 fileList = {}
+dirMap = {}
 currPath = ""
 systemName = ""
 
@@ -20,18 +21,28 @@ def init(fsname):
     global SystemSize
     global freeList
     global systemName
+    global currPath
     systemName = fsname
     SystemSize = os.path.getsize(pwd)
     freeList = [None] * SystemSize
+    fileList['/'] = []
+    currPath = "/"
 
 
 def create(filename, nbytes):
-    path = currPath + "/" + str(filename)
-    newFile = File(filename, nbytes, path)
-    fileList[path] = newFile  # appended file object to file lisMe
     global SystemSize
+    global freeList
     if (nbytes > SystemSize):
         raise Exception('No More Space')
+
+    for file in fileList[currPath]:
+        if file == filename:
+            raise Exception('File name already exists')
+
+    newFile = File(filename, nbytes, currPath)
+
+    fileList[currPath].append(newFile)  # appended file object to file list
+
     for pos in range(len(freeList)):
         if nbytes == 0:
             break
@@ -59,18 +70,17 @@ def open(filename, mode):  # example: filename is a
 def close(fd):
     global SystemSize
     global freeList
-    if fd not in fileList:
-        raise Exception("No such file descriptor.")
+    isFD(fd)
     fileToClose = fileList[fd]
     fileToClose.open = False
     fileToClose.read = False
     fileToClose.write = False
 
+
 def write(fd, writebuf):
     global SystemSize
     global freeList
-    if fd not in fileList:
-        raise Exception("No such file descriptor.")
+    isFD(fd)
     F = fileList[fd]
     if (F.size - F.occupied) < len(writebuf):
         raise Exception("File not big enough")
@@ -87,34 +97,33 @@ def write(fd, writebuf):
 def read(fd, nbytes):
     global SystemSize
     global freeList
-    if fd not in fileList:
-        raise Exception("No such file descriptor.")
+    isFD(fd)
     file = fileList[fd]  # assign File object at pathToFile
     bytesToRead = nbytes
-    tempString = ""
+    retString = ""
     if file.read is not True:
         raise Exception("Error: No permission to read this file!")
     if nbytes > file.size:  # trying to read more bytes than size of file
         raise Exception("Error: trying to read more bytes than length of file.")
 
     for word in file.content:
-        tempString += word
+        retString += word
         bytesToRead -= 1
         file.position += 1
         if bytesToRead == 0:
             break
 
-    return tempString
+    return retString
+
 
 def readlines(fd):
     global SystemSize
     global freeList
     currLine = ""
     fileLines = []
-    try:
-        file = fileList[fd]  # assign File object at pathToFile
-    except KeyError:
-        raise Exception("No such file descriptor.")
+    isFD(fd)
+    file = fileList[fd]  # assign File object at pathToFile
+
     if file.read is not True:
         raise Exception("Error: No permission to read this file!")
     for byte in file.content:
@@ -131,18 +140,21 @@ def length(fd):
     global SystemSize
     global freeList
 
-    if fd not in fileList:
-        raise Exception("No such file descriptor.")
+    isFD(fd)
     file = fileList[fd]  # assign File object at pathToFile
     return file.occupied
+
+
+def isFD(fd):
+    if fd not in fileList:
+        raise Exception("No such file descriptor.")
 
 
 def pos(fd):
     global SystemSize
     global freeList
 
-    if fd not in fileList:
-        raise Exception("No such file descriptor.")
+    isFD(fd)
     file = fileList[fd]  # assign File object at pathToFile
     return file.position
 
@@ -151,13 +163,60 @@ def seek(fd, pos):
     global SystemSize
     global freeList
 
-    if fd not in fileList:
-        raise Exception("No such file descriptor.")
+    isFD(fd)
     file = fileList[fd]  # assign File object at pathToFile
     if pos < 0 or pos > file.size or pos > file.occupied:
         raise Exception("Incorrect position")
     file.position = pos
-    print file.position
+    return
+
+
+def delfile(filename):
+    pathToFile = currPath + filename
+    if pathToFile not in fileList:
+        raise Exception("File doesn't exist.")
+    if fileList[pathToFile].open is True:
+        raise Exception("File is still open.")
+    fileToDelete = fileList[pathToFile]
+    del fileList[pathToFile]
+    del fileToDelete
+
+
+def isdir(dirname):
+    if currPath + "/" + str(dirname) in fileList:
+        return True
+    return False
+
+def mkdir(dirname):
+    global currPath
+    doesDirExist(dirname, False)
+    mkPath = currPath + "/" + dirname
+    dirMap[mkPath] = []
+
+
+def chdir(dirname):
+    global currPath
+    doesDirExist(dirname, True)
+    currPath = currPath + "/" + str(dirname)
+
+
+def deldir(dirname):
+    doesDirExist(dirname, True)
+
+    for files in fileList[currPath + "/" + str(dirname)]:
+        if files.open is True:
+            raise Exception('Directory contains file that is still open')
+
+    del fileList[currPath + "/" + str(dirname)]
+
+#def listdir():
+
+def doesDirExist(dirname, itShouldBe):
+    global currPath
+    if currPath + "/" + str(dirname) not in dirMap and itShouldBe is True:
+        raise Exception('Directory does not exist')
+    elif currPath + "/" + str(dirname) in dirMap and itShouldBe is False:
+        raise Exception('Directory already exists')
 
 
 def tester():
@@ -165,12 +224,16 @@ def tester():
     create("x", 7)
     open("x", "w")
     write("/x", "b\na\n")
-    open("x", "r")
-    print read("/x", 2)
+    """open("x", "r")
+    print "read " + read("/x", 2)
+    print readlines("/x")
     close("/x")
-    print pos("/x")
+    print "pos %d"  % pos("/x")
     seek("/x", 4)
-    print length("/x")
+    print "length %d" % length("/x")
+    mkdir("a")
+    print dirMap
+    print currPath"""
 
 
 tester()
