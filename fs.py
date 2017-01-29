@@ -171,14 +171,52 @@ def seek(fd, pos):
     return
 
 
+def delfile(filename):
+    pathToFile = currPath + filename
+    if pathToFile not in fileList:
+        raise Exception("File doesn't exist.")
+    if fileList[pathToFile].open is True:
+        raise Exception("File is still open.")
+    fileToDelete = fileList[pathToFile]
+    del fileList[pathToFile]
+    del fileToDelete
+
+
+def isdir(dirname):
+    if currPath + "/" + str(dirname) in fileList:
+        return True
+    return False
+
 def mkdir(dirname):
+    global currPath
+    doesDirExist(dirname, False)
     mkPath = currPath + "/" + dirname
     dirMap[mkPath] = []
-    return
+
+
+def chdir(dirname):
+    global currPath
+    doesDirExist(dirname, True)
+    currPath = currPath + "/" + str(dirname)
 
 
 def deldir(dirname):
-    currPath
+    doesDirExist(dirname, True)
+
+    for files in fileList[currPath + "/" + str(dirname)]:
+        if files.open is True:
+            raise Exception('Directory contains file that is still open')
+
+    del fileList[currPath + "/" + str(dirname)]
+
+#def listdir():
+
+def doesDirExist(dirname, itShouldBe):
+    global currPath
+    if currPath + "/" + str(dirname) not in dirMap and itShouldBe is True:
+        raise Exception('Directory does not exist')
+    elif currPath + "/" + str(dirname) in dirMap and itShouldBe is False:
+        raise Exception('Directory already exists')
 
 
 def tester():
