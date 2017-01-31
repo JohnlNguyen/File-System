@@ -98,9 +98,6 @@ def write(fd, writebuf):
     if F.open is False:
         raise Exception("File is not open")
     F.writeToFile(writebuf)
-    f = io.open(systemName, "wb")
-    f.write(writebuf)
-    f.close()
 
 
 def read(fd, nbytes):
