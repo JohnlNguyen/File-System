@@ -1,17 +1,15 @@
 class foo():
-    x = 1
     l = []
+    def __init__(self,val):
+        self.val = val
+    def __cmp__(self, other):
+        return self.val < other.val
+a = foo(10)
+b = foo(12)
+l = []
+l.append(a)
+l.append(b)
 
+sorted(l)
 
-m = {}
-def f(m):
-    a = foo()
-    b = foo()
-    m["key"] = []
-    m["key"].append(a)
-    m["key"].append(b)
-    return
-f(m)
-print m
-del m["key"]
-print m
+print l[0].val

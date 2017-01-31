@@ -3,27 +3,23 @@
 
 import io
 import os
+import pickle
 from file import File
 
 SystemSize = 0
 freeList = []
 fileList = {}
-dirMap = {}
 currPath = ""
 systemName = ""
 
 
 def init(fsname):
-    fd = io.open(fsname, 'wb')
-    fd.write("a" * 10)  # Change 5 to be what we want the size of the system to be
-    fd.close()
-    pwd = os.getcwd() + "/" + str(fsname)
     global SystemSize
     global freeList
     global systemName
     global currPath
     systemName = fsname
-    SystemSize = os.path.getsize(pwd)
+    SystemSize = os.path.getsize(fsname)
     freeList = [None] * SystemSize
     fileList['/'] = []
     currPath = "/"
@@ -32,6 +28,8 @@ def init(fsname):
 def create(filename, nbytes):
     global SystemSize
     global freeList
+    global systemName
+    global currPath
     if (nbytes > SystemSize):
         raise Exception('No More Space')
 
@@ -53,25 +51,35 @@ def create(filename, nbytes):
 
 
 def open(filename, mode):  # example: filename is a
-    pathToFile = currPath + "/" + filename
-    if pathToFile not in fileList:
-        raise Exception("File does not exist.")
-    if mode not in ['r', 'w']:
-        raise Exception("Invalid Mode.")
-    fileToOpen = fileList[pathToFile]  # assign File object at pathToFile
+    global SystemSize
+    global freeList
+    global systemName
+    global currPath
+    dirFiles = fileList[currPath]
+    fileToOpen = None
+    for file in dirFiles:
+        if filename == file.name:
+            fileToOpen = file
+        if mode not in ['r', 'w']:
+            raise Exception("Invalid Mode.")
+        if fileToOpen is None:
+            raise Exception("File does not exist.")
     fileToOpen.open = True
     if mode == "r":
         fileToOpen.read = True
     if mode == "w":
         fileToOpen.write = True
-    return pathToFile
+    if currPath == "/":
+        return currPath + filename
+    return currPath + '/' + filename
 
 
 def close(fd):
     global SystemSize
     global freeList
-    isFD(fd)
-    fileToClose = fileList[fd]
+    global systemName
+    global currPath
+    fileToClose = isFD(fd)
     fileToClose.open = False
     fileToClose.read = False
     fileToClose.write = False
@@ -80,8 +88,9 @@ def close(fd):
 def write(fd, writebuf):
     global SystemSize
     global freeList
-    isFD(fd)
-    F = fileList[fd]
+    global systemName
+    global currPath
+    F = isFD(fd)
     if (F.size - F.occupied) < len(writebuf):
         raise Exception("File not big enough")
     if F.read is True:
@@ -93,12 +102,12 @@ def write(fd, writebuf):
     f.write(writebuf)
     f.close()
 
-
 def read(fd, nbytes):
     global SystemSize
     global freeList
-    isFD(fd)
-    file = fileList[fd]  # assign File object at pathToFile
+    global systemName
+    global currPath
+    file = isFD(fd)
     bytesToRead = nbytes
     retString = ""
     if file.read is not True:
@@ -119,10 +128,11 @@ def read(fd, nbytes):
 def readlines(fd):
     global SystemSize
     global freeList
+    global systemName
+    global currPath
     currLine = ""
     fileLines = []
-    isFD(fd)
-    file = fileList[fd]  # assign File object at pathToFile
+    file = isFD(fd)
 
     if file.read is not True:
         raise Exception("Error: No permission to read this file!")
@@ -139,46 +149,138 @@ def readlines(fd):
 def length(fd):
     global SystemSize
     global freeList
+    global systemName
+    global currPath
 
-    isFD(fd)
-    file = fileList[fd]  # assign File object at pathToFile
+    file = isFD(fd)
     return file.occupied
 
 
 def isFD(fd):
-    if fd not in fileList:
-        raise Exception("No such file descriptor.")
+    global SystemSize
+    global freeList
+    global systemName
+    global currPath
+    # sample fd: /dir1/dir2/hi.txt
+    # need to find out if fd exists
+    # fileList: '/dir1/dir2': [hi.txt, bye.txt]
+    # Example: fd = /a/b/abc.txt
+    dirsp = fd.split('/')  # Example: dirsp = ['a', 'b', 'abc.txt']
+    filename = dirsp[-1]  # Example: filename = 'abc.txt'
+    dirPath = '/'.join(dirsp[:-1]) + '/'  # Example: dirpath = /a/b/
 
+    if dirPath not in fileList:
+        raise Exception("No such file descriptor.")
+    dirFiles = fileList[dirPath]
+    for file in dirFiles:
+        if filename == file.name:
+            return file
+    raise Exception("No such file descriptor.")
 
 def pos(fd):
     global SystemSize
     global freeList
-
-    isFD(fd)
-    file = fileList[fd]  # assign File object at pathToFile
+    global systemName
+    global currPath
+    file = isFD(fd)
     return file.position
-
 
 def seek(fd, pos):
     global SystemSize
     global freeList
-
-    isFD(fd)
-    file = fileList[fd]  # assign File object at pathToFile
+    global systemName
+    global currPath
+    file = isFD(fd)
     if pos < 0 or pos > file.size or pos > file.occupied:
         raise Exception("Incorrect position")
     file.position = pos
     return
 
+def delfile(filename):
+    global SystemSize
+    global freeList
+    global systemName
+    global currPath
+    pathToFile = currPath + filename
+    if pathToFile not in fileList:
+        raise Exception("File doesn't exist.")
+    if fileList[pathToFile].open is True:
+        raise Exception("File is still open.")
+    fileToDelete = fileList[pathToFile]
+    del fileList[pathToFile]
+    del fileToDelete
+
+def isdir(dirname):
+    global SystemSize
+    global freeList
+    global systemName
+    global currPath
+    if currPath + dirname + "/" in fileList:
+        return True
+    return False
+
 
 def mkdir(dirname):
-    mkPath = currPath + "/" + dirname
-    dirMap[mkPath] = []
-    return
+    global SystemSize
+    global freeList
+    global systemName
+    global currPath
+    doesDirExist(dirname, False)
+    mkPath = currPath + dirname + "/"
+    fileList[mkPath] = []
+
+def chdir(dirname):
+    global SystemSize
+    global freeList
+    global systemName
+    global currPath
+    doesDirExist(dirname, True)
+    currPath = currPath + dirname + '/'
 
 
 def deldir(dirname):
-    currPath
+    global SystemSize
+    global freeList
+    global systemName
+    global currPath
+    doesDirExist(dirname, True)
+
+    pathToDir = currPath + dirname + '/'
+    length = len(pathToDir)
+
+    for key, values in fileList.items():
+        if key[:length] == pathToDir:
+            for val in values:
+                if val.open is True:
+                    raise Exception("File(s) still open.")
+            del fileList[key]
+    return
+
+
+def listdir():
+    global SystemSize
+    global freeList
+    global systemName
+    global currPath
+    # in /a/b/
+    # /a/b/ has dir c, d, e
+    # keys are /a/b/c/, /a/b/d/, /a/b/e/
+    alldir = []
+    for key in fileList.keys():
+        if key[:len(currPath)] == currPath:
+            directory = key.split('/')
+            alldir.append(directory[-2])
+    return alldir
+
+def doesDirExist(dirname, itShouldBe):
+    global SystemSize
+    global freeList
+    global systemName
+    global currPath
+    if currPath + dirname + "/" not in fileList and itShouldBe is True:
+        raise Exception('Directory does not exist')
+    if currPath + dirname + "/" in fileList and itShouldBe is False:
+        raise Exception('Directory already exists')
 
 
 def tester():
