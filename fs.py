@@ -102,6 +102,7 @@ def write(fd, writebuf):
     f.write(writebuf)
     f.close()
 
+
 def read(fd, nbytes):
     global SystemSize
     global freeList
@@ -145,7 +146,6 @@ def readlines(fd):
         fileLines.append(currLine)
     return fileLines
 
-
 def length(fd):
     global SystemSize
     global freeList
@@ -177,6 +177,7 @@ def isFD(fd):
             return file
     raise Exception("No such file descriptor.")
 
+
 def pos(fd):
     global SystemSize
     global freeList
@@ -184,6 +185,7 @@ def pos(fd):
     global currPath
     file = isFD(fd)
     return file.position
+
 
 def seek(fd, pos):
     global SystemSize
@@ -195,6 +197,7 @@ def seek(fd, pos):
         raise Exception("Incorrect position")
     file.position = pos
     return
+
 
 def delfile(filename):
     global SystemSize
@@ -209,6 +212,7 @@ def delfile(filename):
     fileToDelete = fileList[pathToFile]
     del fileList[pathToFile]
     del fileToDelete
+
 
 def isdir(dirname):
     global SystemSize
@@ -228,6 +232,7 @@ def mkdir(dirname):
     doesDirExist(dirname, False)
     mkPath = currPath + dirname + "/"
     fileList[mkPath] = []
+
 
 def chdir(dirname):
     global SystemSize
@@ -271,6 +276,7 @@ def listdir():
             directory = key.split('/')
             alldir.append(directory[-2])
     return alldir
+
 
 def doesDirExist(dirname, itShouldBe):
     global SystemSize
