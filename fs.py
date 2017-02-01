@@ -40,7 +40,6 @@ def create(filename, nbytes):
     newFile = File(filename, nbytes, currPath)
 
     fileList[currPath].append(newFile)  # appended file object to file list
-
     for pos in range(len(freeList)):
         if nbytes == 0:
             break
@@ -48,7 +47,6 @@ def create(filename, nbytes):
             freeList[pos] = filename
             nbytes -= 1
             SystemSize -= 1
-
 
 def open(filename, mode):  # example: filename is a
     global SystemSize
@@ -113,6 +111,8 @@ def read(fd, nbytes):
     if file.read is not True:
         raise Exception("Error: No permission to read this file!")
     if nbytes > file.size:  # trying to read more bytes than size of file
+        raise Exception("Error: trying to read more bytes than length of file.")
+    if nbytes + file.position > file.size:  # trying to read more bytes than size of file
         raise Exception("Error: trying to read more bytes than length of file.")
 
     for word in file.content:

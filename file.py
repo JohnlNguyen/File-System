@@ -7,8 +7,7 @@ class File:
         self.read = False  # if False then it's write
         self.open = False
         self.position = 0
-
     def writeToFile(self, writebuf):
-        self.content += writebuf
+        self.content += self.content[:position+1] + writebuf
         self.occupied += len(writebuf)
         self.position += len(writebuf)
