@@ -57,18 +57,20 @@ def open(filename, mode):  # example: filename is a
     global currPath
     dirFiles = fileList[currPath]
     fileToOpen = None
+    if mode not in ['r', 'w']:
+        raise Exception("Invalid Mode.")
+
     for file in dirFiles:
         if filename == file.name:
             fileToOpen = file
-        if mode not in ['r', 'w']:
-            raise Exception("Invalid Mode.")
-        if fileToOpen is None:
-            raise Exception("File does not exist.")
+            break
+    if fileToOpen is None:
+        raise Exception("File does not exist.")
     fileToOpen.open = True
     if mode == "r":
         fileToOpen.read = True
     if mode == "w":
-        fileToOpen.write = True
+        fileToOpen.read = False
     if currPath == "/":
         return currPath + filename
     return currPath + '/' + filename
@@ -148,10 +150,8 @@ def length(fd):
     global freeList
     global systemName
     global currPath
-
     file = isFD(fd)
     return file.occupied
-
 
 def isFD(fd):
     global SystemSize
@@ -286,21 +286,24 @@ def doesDirExist(dirname, itShouldBe):
         raise Exception('Directory already exists')
 
 
-def tester():
+def testFiles():
     init("abc.txt")
     create("x", 7)
+    create("y", 7)
     open("x", "w")
+    open("y", "w")
     write("/x", "b\na\n")
+    write("/y", "test")
     open("x", "r")
-    """print "read " + read("/x", 2)
-    print readlines("/x")
-    close("/x")
-    print "pos %d"  % pos("/x")
-    seek("/x", 4)
+    open("y", "r")
+    print "pos %d" % pos("/y")
+    #print "read " + read("/x", 2)
+    #print readlines("/x")
+    #close("/x")
+    #print "pos %d" % pos("/x")
+    """seek("/x", 4)
     print "length %d" % length("/x")
     mkdir("a")
     print dirMap
     print currPath"""
-
-
-tester()
+testFiles()
