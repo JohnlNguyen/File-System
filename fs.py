@@ -97,6 +97,7 @@ def write(fd, writebuf):
         raise Exception("File is read-only")
     if F.open is False:
         raise Exception("File is not open")
+
     F.writeToFile(writebuf)
 
 
@@ -106,22 +107,15 @@ def read(fd, nbytes):
     global systemName
     global currPath
     file = isFD(fd)
-    bytesToRead = nbytes
     retString = ""
     if file.read is not True:
         raise Exception("Error: No permission to read this file!")
-    if nbytes > file.size:  # trying to read more bytes than size of file
-        raise Exception("Error: trying to read more bytes than length of file.")
     if nbytes + file.position > file.size:  # trying to read more bytes than size of file
         raise Exception("Error: trying to read more bytes than length of file.")
 
-    for word in file.content:
+    for word in file.content[file.position: file.position + nbytes]:
         retString += word
-        bytesToRead -= 1
         file.position += 1
-        if bytesToRead == 0:
-            break
-
     return retString
 
 
@@ -288,7 +282,24 @@ def doesDirExist(dirname, itShouldBe):
 
 def testFiles():
     init("abc.txt")
-    create("x", 7)
+    create("x", 10)
+    open("x", "w")
+    write("x", "abcdefg")
+    seek("x", 2)
+
+    open("x", "r")
+
+    print read("/x", 3)
+    open("x", "w")
+
+    write("x", "XX")
+
+    #abcdeXXfg
+    open("x", "r")
+    print read("/x", 3)
+
+
+    """
     create("y", 7)
     open("x", "w")
     open("y", "w")
@@ -296,7 +307,8 @@ def testFiles():
     write("/y", "test")
     open("x", "r")
     open("y", "r")
-    print "pos %d" % pos("/y")
+    """
+   # print "pos %d" % pos("/y")
     #print "read " + read("/x", 2)
     #print readlines("/x")
     #close("/x")

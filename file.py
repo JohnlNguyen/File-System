@@ -8,6 +8,6 @@ class File:
         self.open = False
         self.position = 0
     def writeToFile(self, writebuf):
-        self.content += self.content[:position+1] + writebuf
+        self.content = self.content[:self.position] + writebuf + self.content[self.position:]
         self.occupied += len(writebuf)
-        self.position += len(writebuf)
+        self.position += len(writebuf)-1
