@@ -24,40 +24,47 @@ def init(fsname):
     fileList['/'] = []
     currPath = "/"
 
-
 def create(filename, nbytes):
     global SystemSize
     global freeList
     global systemName
     global currPath
     if (nbytes > SystemSize):
-        raise Exception('No More Space')
-
+          raise Exception('No More Space')
+    filename, mkPath = getAbs(currPath, filename)
     for file in fileList[currPath]:
-        if file == filename:
+        if file.name == filename:
             raise Exception('File name already exists')
-
-    newFile = File(filename, nbytes, currPath)
-
-    fileList[currPath].append(newFile)  # appended file object to file list
-    for pos in range(len(freeList)):
+    newFile = File(filename, nbytes, mkPath)
+    fileList[mkPath].append(newFile)  # appended file object to file list
+    for index in range(len(freeList)):
         if nbytes == 0:
             break
-        if freeList[pos] is None and (nbytes <= SystemSize):
-            freeList[pos] = filename
+        if freeList[index] is None and (nbytes <= SystemSize):
+            freeList[index] = filename
             nbytes -= 1
             SystemSize -= 1
+
+
+def getAbs(currPath, filename):
+    absPath = filename.split("/")
+    mkPath = currPath
+    if (len(absPath) > 1):
+        mkPath = filename.rsplit('/', 1)[0]
+        filename = filename.rsplit('/', 1)[1]
+    return filename, mkPath
+
 
 def open(filename, mode):  # example: filename is a
     global SystemSize
     global freeList
     global systemName
     global currPath
-    dirFiles = fileList[currPath]
     fileToOpen = None
     if mode not in ['r', 'w']:
         raise Exception("Invalid Mode.")
-
+    filename, mkPath = getAbs(currPath, filename)
+    dirFiles = fileList[mkPath]
     for file in dirFiles:
         if filename == file.name:
             fileToOpen = file
@@ -69,10 +76,9 @@ def open(filename, mode):  # example: filename is a
         fileToOpen.read = True
     if mode == "w":
         fileToOpen.read = False
-    if currPath == "/":
-        return currPath + filename
-    return currPath + '/' + filename
-
+    if mkPath == "/":
+        return mkPath + filename
+    return mkPath + '/' + filename
 
 def close(fd):
     global SystemSize
@@ -220,8 +226,12 @@ def mkdir(dirname):
     global freeList
     global systemName
     global currPath
-    doesDirExist(dirname, False)
-    mkPath = currPath + dirname + "/"
+    doesDirExist(dirname,False)
+    absPath = dirname.split("/")
+    if( len(absPath) > 1):
+        mkPath = dirname
+    else:
+        mkPath = currPath + dirname + "/"
     fileList[mkPath] = []
 
 
@@ -286,36 +296,22 @@ def testFiles():
     open("x", "w")
     write("x", "abcdefg")
     seek("x", 2)
-
     open("x", "r")
-
     print read("/x", 3)
     open("x", "w")
-
     write("x", "XX")
-
-    #abcdeXXfg
     open("x", "r")
     print read("/x", 3)
-
-
-    """
-    create("y", 7)
-    open("x", "w")
-    open("y", "w")
-    write("/x", "b\na\n")
-    write("/y", "test")
-    open("x", "r")
-    open("y", "r")
-    """
-   # print "pos %d" % pos("/y")
-    #print "read " + read("/x", 2)
-    #print readlines("/x")
-    #close("/x")
-    #print "pos %d" % pos("/x")
-    """seek("/x", 4)
-    print "length %d" % length("/x")
-    mkdir("a")
-    print dirMap
-    print currPath"""
+def testDirs():
+    mkdir("/a")
+    mkdir("/a/b")
+    create("/a/b/file.txt",2)
+    fd = open("/a/b/file.txt","r")
+    fd = open("x", "r")
+    print fileList
+    print fd
 testFiles()
+testDirs()
+
+
+

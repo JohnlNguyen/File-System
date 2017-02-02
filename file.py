@@ -10,4 +10,4 @@ class File:
     def writeToFile(self, writebuf):
         self.content = self.content[:self.position] + writebuf + self.content[self.position:]
         self.occupied += len(writebuf)
-        self.position += len(writebuf)-1
+        self.position += len(writebuf)
