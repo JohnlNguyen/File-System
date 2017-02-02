@@ -50,8 +50,8 @@ def getAbs(currPath, filename):
     absPath = filename.split("/")
     mkPath = currPath
     if (len(absPath) > 1):
-        mkPath = filename.rsplit('/', 1)[0]
-        filename = filename.rsplit('/', 1)[1]
+        mkPath = filename.rsplit('/', 2)[0]
+        filename = filename.rsplit('/', 2)[1]
     return filename, mkPath
 
 
@@ -201,14 +201,20 @@ def delfile(filename):
     global freeList
     global systemName
     global currPath
-    pathToFile = currPath + filename
-    if pathToFile not in fileList:
-        raise Exception("File doesn't exist.")
-    if fileList[pathToFile].open is True:
-        raise Exception("File is still open.")
-    fileToDelete = fileList[pathToFile]
-    del fileList[pathToFile]
-    del fileToDelete
+    filename, mkPath = getAbs(currPath, filename)
+
+    if mkPath not in fileList:
+        raise Exception("Path doesn't exist.")
+
+    for file in fileList[mkPath]:
+        if file.name == filename:
+            if file.open is True:
+                raise Exception("File is still open.")
+            else:
+                fileIndex = fileList[mkPath].index(file)
+                del fileList[mkPath][fileIndex]
+                del file
+                break
 
 
 def isdir(dirname):
@@ -240,8 +246,14 @@ def chdir(dirname):
     global freeList
     global systemName
     global currPath
-    doesDirExist(dirname, True)
-    currPath = currPath + dirname + '/'
+    if dirname == '..':
+        absPath = currPath.split("/")
+        currPath = '/'.join(absPath[:-2]) + '/'
+    else:
+      doesDirExist(dirname, True)
+      currPath = currPath + dirname + '/'
+
+
 
 
 def deldir(dirname):
@@ -296,18 +308,21 @@ def testFiles():
     open("x", "w")
     write("x", "abcdefg")
     seek("x", 2)
-    open("x", "r")
+    fd = open("x", "r")
     print read("/x", 3)
     open("x", "w")
     write("x", "XX")
     open("x", "r")
     print read("/x", 3)
+    close(fd)
+    delfile("x")
+    print fileList
+
 def testDirs():
-    mkdir("/a")
+    mkdir("a")
     mkdir("/a/b")
     create("/a/b/file.txt",2)
     fd = open("/a/b/file.txt","r")
-    fd = open("x", "r")
     print fileList
     print fd
 testFiles()
