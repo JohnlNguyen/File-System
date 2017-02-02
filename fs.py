@@ -24,13 +24,14 @@ def init(fsname):
     fileList['/'] = []
     currPath = "/"
 
+
 def create(filename, nbytes):
     global SystemSize
     global freeList
     global systemName
     global currPath
     if (nbytes > SystemSize):
-          raise Exception('No More Space')
+        raise Exception('No More Space')
     filename, mkPath = getAbs(currPath, filename)
     for file in fileList[currPath]:
         if file.name == filename:
@@ -79,6 +80,7 @@ def open(filename, mode):  # example: filename is a
     if mkPath == "/":
         return mkPath + filename
     return mkPath + '/' + filename
+
 
 def close(fd):
     global SystemSize
@@ -145,6 +147,7 @@ def readlines(fd):
         fileLines.append(currLine)
     return fileLines
 
+
 def length(fd):
     global SystemSize
     global freeList
@@ -152,6 +155,7 @@ def length(fd):
     global currPath
     file = isFD(fd)
     return file.occupied
+
 
 def isFD(fd):
     global SystemSize
@@ -227,47 +231,56 @@ def isdir(dirname):
     return False
 
 
-def mkdir(dirname):
+def mkdir(dirname):  # Ex: b
     global SystemSize
     global freeList
     global systemName
     global currPath
-    doesDirExist(dirname,False)
-    absPath = dirname.split("/")
-    if( len(absPath) > 1):
-        mkPath = dirname
+    absPath = dirname.split("/")  # absPath = ['b']
+    if (len(absPath) > 1):  # nah bro
+        mkPath = dirname + "/"
     else:
-        mkPath = currPath + dirname + "/"
+        mkPath = currPath + dirname + "/"  # mkPath = '/a/c/' + 'b' + '/'
+    doesDirExist(mkPath, False)
     fileList[mkPath] = []
 
 
-def chdir(dirname):
+def chdir(dirname):  # Ex: dirname = '/a/b'
     global SystemSize
     global freeList
     global systemName
     global currPath
-    if dirname == '..':
+    if dirname == '..':  # Nope
         absPath = currPath.split("/")
         currPath = '/'.join(absPath[:-2]) + '/'
     else:
-      doesDirExist(dirname, True)
-      currPath = currPath + dirname + '/'
+        absPath = dirname.split("/")  # absPath = ['', '']
+        if (len(absPath) > 1):  # Yes
+            if dirname == '/':  # Yes
+                chPath = '/'  # Yes
+            else:
+                chPath = dirname + "/"
+        else:
+            chPath = currPath + dirname + "/"
+        doesDirExist(chPath, True)
+        currPath = chPath
 
 
-
-
-def deldir(dirname):
+def deldir(dirname):  # dirname = '/a/b'
     global SystemSize
     global freeList
     global systemName
-    global currPath
-    doesDirExist(dirname, True)
-
-    pathToDir = currPath + dirname + '/'
-    length = len(pathToDir)
-
+    global currPath  # currPath = '/'
+    absPath = dirname.split("/")
+    if (len(absPath) > 1):
+        delPath = dirname + "/"
+    else:
+        delPath = currPath + dirname + "/"
+    doesDirExist(delPath, True)  # doesDirExist('/a/b/', True)
+    # delPath = '/a/b/'
+    length = len(delPath)  # length = 5
     for key, values in fileList.items():
-        if key[:length] == pathToDir:
+        if key[:length] == delPath:  # key[:5]
             for val in values:
                 if val.open is True:
                     raise Exception("File(s) still open.")
@@ -275,32 +288,71 @@ def deldir(dirname):
     return
 
 
-def listdir():
+def listdir(dirname): # '/a/b'
     global SystemSize
     global freeList
     global systemName
     global currPath
-    # in /a/b/
-    # /a/b/ has dir c, d, e
-    # keys are /a/b/c/, /a/b/d/, /a/b/e/
+    absPath = dirname.split("/")
+    if( len(absPath) > 1):
+        lsPath = dirname + "/" # lsPath = '/a/b/'
+    else:
+        lsPath = currPath + dirname + "/"
+    doesDirExist(lsPath, True)
+    # lsPath = '/a/b/'
+    # len(lsPath) = 5
+    # lsPath.split('/') = ['', 'a', 'b' ,'']
     alldir = []
-    for key in fileList.keys():
-        if key[:len(currPath)] == currPath:
-            directory = key.split('/')
-            alldir.append(directory[-2])
+    depth = len(lsPath.split('/')) # depth = 4
+    for key in fileList.keys(): # key = '/a/b/d/f/', '/a/b/e/',
+        if key[:len(lsPath)] == lsPath: # if key[:5] == '/a/b/' = '/a/b/d/f/'
+          directory = key.split('/') # directory = ['', 'a', 'b', 'e', '']
+          if(len(directory)-1 == depth): # 4 -== 4
+          	alldir.append(directory[-2])
+          #alldir.append(directory[len(lsPath)+1])
     return alldir
 
 
-def doesDirExist(dirname, itShouldBe):
+def doesDirExist(dirPath, itShouldBe): # Ex: dirname = /a/b , itShouldBe = True
     global SystemSize
     global freeList
     global systemName
     global currPath
-    if currPath + dirname + "/" not in fileList and itShouldBe is True:
+    if dirPath not in fileList and itShouldBe is True: # if '/a/b' + 'b' + '/' , False
         raise Exception('Directory does not exist')
-    if currPath + dirname + "/" in fileList and itShouldBe is False:
-        raise Exception('Directory already exists')
+    if dirPath in fileList and itShouldBe is False: # if '/a/c/' + 'b' + '/', False
+        raise Exception('Directory already exists') # raise this exception
 
+
+def suspend():
+    global SystemSize
+    global freeList
+    global systemName
+    global currPath
+
+    for files in fileList.values():
+        for file in files:
+            if file.open is True:
+                raise Exception("File(s) still open, cannot suspend.")
+    file = io.open(systemName, 'wb')
+    pickle.dump(SystemSize, file)
+    pickle.dump(freeList, file)
+    pickle.dump(systemName, file)
+    pickle.dump(currPath, file)
+    file.close
+
+
+def resume():
+    global SystemSize
+    global freeList
+    global systemName
+    global currPath
+
+    file = io.open(systemName, 'r')
+    systemSize = pickle.load(file)
+    freeList = pickle.load(file)
+    systemName = pickle.load(file)
+    currPath = pickle.load(file)
 
 def testFiles():
     init("abc.txt")
@@ -318,15 +370,15 @@ def testFiles():
     delfile("x")
     print fileList
 
+
 def testDirs():
     mkdir("a")
     mkdir("/a/b")
-    create("/a/b/file.txt",2)
-    fd = open("/a/b/file.txt","r")
+    create("/a/b/file.txt", 2)
+    #fd = open("/a/b/file.txt", "r")
     print fileList
-    print fd
+    #print fd
+
+
 testFiles()
 testDirs()
-
-
-
