@@ -4,6 +4,7 @@
 import io
 import os
 import pickle
+
 from file import File
 
 SystemSize = 0
@@ -36,25 +37,36 @@ def create(filename, nbytes):
     for file in fileList[mkPath]:
         if file.name == filename:
             raise Exception('File name already exists')
-    newFile = File(filename, nbytes)
-
+    newFile = File(filename, nbytes,mkPath)
     fileList[mkPath].append(newFile)  # appended file object to file list
+    save(filename, freeList, mkPath, nbytes)
+
+
+def save(filename, freeList, mkPath, nbytes):
+    global SystemSize
+    data = get_native()
     for index in range(len(freeList)):
         if nbytes == 0:
             break
         if freeList[index] is None and (nbytes <= SystemSize):
-            freeList[index] = filename
+            freeList[index] = mkPath + filename
+            data[index] = "\0"
             nbytes -= 1
             SystemSize -= 1
+    write_to_native(data)
 
 
-def getAbs(currPath, filename):
-    absPath = filename.split("/")
-    mkPath = currPath
-    if (len(absPath) > 1):
-        mkPath = filename.rsplit('/', 1)[0] + "/"
-        filename = filename.rsplit('/', 1)[1]
-    return filename, mkPath
+def write_to_native(data):
+    data = ''.join(data)
+    with io.open(systemName, 'wb') as native:
+        native.write(data)
+
+
+def get_native():
+    with io.open(systemName, 'r') as native:
+        data = native.readlines()
+    data = list(data[0].encode('UTF8'))
+    return data
 
 
 def open(filename, mode):  # example: filename is a
@@ -159,28 +171,6 @@ def length(fd):
     return file.occupied
 
 
-def isFD(fd):
-    global SystemSize
-    global freeList
-    global systemName
-    global currPath
-    # sample fd: /dir1/dir2/hi.txt
-    # need to find out if fd exists
-    # fileList: '/dir1/dir2': [hi.txt, bye.txt]
-    # Example: fd = /a/b/abc.txt
-    dirsp = fd.split('/')  # Example: dirsp = ['a', 'b', 'abc.txt']
-    filename = dirsp[-1]  # Example: filename = 'abc.txt'
-    dirPath = '/'.join(dirsp[:-1]) + '/'  # Example: dirpath = /a/b/
-
-    if dirPath not in fileList:
-        raise Exception("No such file descriptor.")
-    dirFiles = fileList[dirPath]
-    for file in dirFiles:
-        if filename == file.name:
-            return file
-    raise Exception("No such file descriptor.")
-
-
 def pos(fd):
     global SystemSize
     global freeList
@@ -208,22 +198,55 @@ def delfile(filename):
     global systemName
     global currPath
     filename, mkPath = getAbs(currPath, filename)
-
+    data = get_native()
     if mkPath not in fileList:
         raise Exception("Path doesn't exist.")
-
     for file in fileList[mkPath]:
         if file.name == filename:
             if file.open is True:
                 raise Exception("File is still open.")
             else:
+                del_fd = file.fd
+                SystemSize += file.size
                 fileIndex = fileList[mkPath].index(file)
                 del fileList[mkPath][fileIndex]
                 del file
                 break
-    for i in range(0, len(freeList)):
-        if freeList[i] == filename:
-            freeList[i] = None     
+    for i in range(len(freeList)):
+        if freeList[i] == del_fd:
+            data[i] = 'a'
+            freeList[i] = None
+    write_to_native(data)
+
+
+def suspend():
+    global SystemSize
+    global freeList
+    global systemName
+    global currPath
+
+    for files in fileList.values():
+        for file in files:
+            if file.open is True:
+                raise Exception("File(s) still open, cannot suspend.")
+    file = io.open(systemName, 'wb')
+    pickle.dump(SystemSize, file)
+    pickle.dump(freeList, file)
+    pickle.dump(systemName, file)
+    pickle.dump(currPath, file)
+    file.close
+
+
+def resume(native):
+    global SystemSize
+    global freeList
+    global systemName
+    global currPath
+    file = io.open(native, 'r')
+    systemSize = pickle.load(file)
+    freeList = pickle.load(file)
+    systemName = pickle.load(file)
+    currPath = pickle.load(file)
 
 def isdir(dirname):
     global SystemSize
@@ -336,41 +359,32 @@ def doesDirExist(dirPath, itShouldBe):  # Ex: dirname = /a/b , itShouldBe = True
     if dirPath in fileList and itShouldBe is False:  # if '/a/c/' + 'b' + '/', False
         raise Exception('Directory already exists')  # raise this exception
 
-
-def suspend():
+def getAbs(currPath, filename):
+    absPath = filename.split("/")
+    mkPath = currPath
+    if (len(absPath) > 1):
+        mkPath = filename.rsplit('/', 1)[0] + "/"
+        filename = filename.rsplit('/', 1)[1]
+    return filename, mkPath
+def isFD(fd):
     global SystemSize
     global freeList
     global systemName
     global currPath
-
-    for files in fileList.values():
-        for file in files:
-            if file.open is True:
-                raise Exception("File(s) still open, cannot suspend.")
-    file = io.open(systemName, 'wb')
-    pickle.dump(SystemSize, file)
-    pickle.dump(freeList, file)
-    pickle.dump(systemName, file)
-    pickle.dump(currPath, file)
-    file.close
-
-
-def resume():
-    global SystemSize
-    global freeList
-    global systemName
-    global currPath
-
-    file = io.open(systemName, 'r')
-    systemSize = pickle.load(file)
-    freeList = pickle.load(file)
-    systemName = pickle.load(file)
-    currPath = pickle.load(file)
-
-
-def testFiles():
-    init("abc.txt")
+    dirsp = fd.split('/')
+    filename = dirsp[-1]
+    dirPath = '/'.join(dirsp[:-1]) + '/'
+    if dirPath not in fileList:
+        raise Exception("No such file descriptor.")
+    dirFiles = fileList[dirPath]
+    for file in dirFiles:
+        if filename == file.name:
+            return file
+    raise Exception("No such file descriptor.")
+def test_files():
+    fs.init("abc.txt")
     create("x", 10)
+    print freeList
     open("x", "w")
     write("x", "abcdefg")
     seek("x", 2)
@@ -385,7 +399,7 @@ def testFiles():
     print fileList
 
 
-def testDirs():
+def test_dirs():
     init("abc.txt")
     mkdir("a")
     mkdir("/a/b")
@@ -402,6 +416,16 @@ def testDirs():
     print listdir("/a/b")
 
 
-# testFiles()
-# testDirs()
-# getAbs('')
+def test_frag():
+    init("abc.txt")
+    create("x", 1)
+    create("y", 3)
+    delfile("x")
+    print freeList
+    create("z", 3)
+    print freeList
+    delfile('z')
+
+#test_files()
+test_dirs()
+test_frag()
