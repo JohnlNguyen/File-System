@@ -261,7 +261,17 @@ def isdir(dirname):
     global freeList
     global systemName
     global currPath
-    if currPath + dirname + "/" in fileList:
+    
+    absPath = dirname.split("/")
+    if (len(absPath) > 1):
+        if(absPath[0] != ""):
+            isPath = currPath + dirname + "/"
+        else:
+            isPath = dirname + "/"
+    else:
+        isPath = currPath + dirname + "/"
+
+    if isPath in fileList:
         return True
     return False
 
@@ -273,7 +283,10 @@ def mkdir(dirname):  # Ex: b
     global currPath
     absPath = dirname.split("/")  # absPath = ['b']
     if (len(absPath) > 1):  # user gave abs path
-        mkPath = dirname + "/"
+        if(absPath[0] != ""):
+            mkPath = currPath + dirname + "/"
+        else:
+            mkPath = dirname + "/"
     else: # user gives relative path
         mkPath = currPath + dirname + "/"  # mkPath = '/a/c/' + 'b' + '/'
     doesDirExist(mkPath, False)
@@ -301,7 +314,10 @@ def chdir(dirname):  # Ex: dirname = '/a/b'
             if dirname == '/':  # Yes
                 chPath = '/'  # Yes
             else:
-                chPath = dirname + "/"
+                if(absPath[0] != ""):
+                    chPath = currPath + dirname + "/"
+                else:
+                    chPath = dirname + "/"
         else:
             chPath = currPath + dirname + "/"
         doesDirExist(chPath, True)
@@ -315,7 +331,10 @@ def deldir(dirname):  # dirname = '/a/b'
     global currPath  # currPath = '/'
     absPath = dirname.split("/")
     if (len(absPath) > 1):
-        delPath = dirname + "/"
+        if(absPath[0] != ""):
+            delPath = currPath + dirname + "/"
+        else:
+            delPath = dirname + "/"
     else:
         delPath = currPath + dirname + "/"
     doesDirExist(delPath, True)  # doesDirExist('/a/b/', True)
@@ -343,10 +362,13 @@ def listdir(dirname):  # '/a/b'
     else:
         absPath = dirname.split("/")
         if (len(absPath) > 1):
-            lsPath = dirname + "/"
+            if(absPath[0] != ""):
+                lsPath = currPath + dirname + "/"
+            else:
+                lsPath = dirname + "/"
         else:
             lsPath = currPath + dirname + "/"
-        doesDirExist(lsPath, True)
+    doesDirExist(lsPath, True)
     alldir = []
     depth = len(lsPath.split('/'))
     for key in fileList.keys():
@@ -371,7 +393,10 @@ def getAbs(currPath, filename):
     absPath = filename.split("/")
     mkPath = currPath
     if (len(absPath) > 1):
-        mkPath = filename.rsplit('/', 1)[0] + "/"
+        if(absPath[0] != ""):
+            mkPath = mkPath + filename.rsplit('/', 1)[0] + "/"
+        else:
+            mkPath = filename.rsplit('/', 1)[0] + "/"
         filename = filename.rsplit('/', 1)[1]
     return filename, mkPath
 
@@ -390,52 +415,3 @@ def isFD(fd):
         if filename == file.name:
             return file
     raise Exception("No such file descriptor.")
-
-def test_files():
-    fs.init("abc.txt")
-    create("x", 10)
-    print freeList
-    open("x", "w")
-    write("x", "abcdefg")
-    seek("x", 2)
-    fd = open("x", "r")
-    print read("/x", 3)
-    open("x", "w")
-    write("x", "XX")
-    open("x", "r")
-    print read("/x", 3)
-    close(fd)
-    delfile("x")
-    print fileList
-
-
-def test_dirs():
-    init("abc.txt")
-    mkdir("a")
-    mkdir("/a/b")
-    mkdir("/a/c")
-    mkdir("/a/d")
-    mkdir("/a/b/f")
-    create("/a/b/file.txt", 2)
-    fd = open("/a/b/file.txt", "r")
-    close(fd)
-    chdir("/a/b")
-    print fileList
-    print currPath
-    print listdir(".")
-    print listdir("/a/b")
-
-
-def test_frag():
-    init("abc.txt")
-    create("x", 1)
-    create("y", 3)
-    delfile("x")
-    print freeList
-    create("z", 3)
-    print freeList
-    delfile('z')
-
-#test_files()
-test_dirs()
-test_frag()
