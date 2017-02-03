@@ -73,6 +73,8 @@ def open(filename, mode):  # example: filename is a
             break
     if fileToOpen is None:
         raise Exception("File does not exist.")
+    if fileToOpen.open == True:
+        raise Exception("File already open.")
     fileToOpen.open = True
     if mode == "r":
         fileToOpen.read = True
@@ -87,6 +89,7 @@ def close(fd):
     global systemName
     global currPath
     fileToClose = isFD(fd)
+    fileToClose.position = 0
     fileToClose.open = False
     fileToClose.read = False
     fileToClose.write = False
@@ -218,7 +221,9 @@ def delfile(filename):
                 del fileList[mkPath][fileIndex]
                 del file
                 break
-
+    for i in range(0, len(freeList)):
+        if freeList[i] == filename:
+            freeList[i] = None     
 
 def isdir(dirname):
     global SystemSize
@@ -236,11 +241,16 @@ def mkdir(dirname):  # Ex: b
     global systemName
     global currPath
     absPath = dirname.split("/")  # absPath = ['b']
-    if (len(absPath) > 1):  # nah bro
+    if (len(absPath) > 1):  # user gave abs path
         mkPath = dirname + "/"
-    else:
+    else: # user gives relative path
         mkPath = currPath + dirname + "/"  # mkPath = '/a/c/' + 'b' + '/'
     doesDirExist(mkPath, False)
+
+    newDirName = mkPath.split('/')[-2]
+    base = '/'.join(mkPath.split('/')[:-2]) + '/'
+    if base not in fileList:
+        raise Exception('Invalid directory name')
     fileList[mkPath] = []
 
 
@@ -381,7 +391,6 @@ def testDirs():
     mkdir("/a/b")
     mkdir("/a/c")
     mkdir("/a/d")
-    mkdir("/a/b/k/d")
     mkdir("/a/b/f")
     create("/a/b/file.txt", 2)
     fd = open("/a/b/file.txt", "r")
@@ -390,9 +399,9 @@ def testDirs():
     print fileList
     print currPath
     print listdir(".")
-    print listdir("/a/b/k")
+    print listdir("/a/b")
 
 
 # testFiles()
-testDirs()
+# testDirs()
 # getAbs('')
