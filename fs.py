@@ -12,6 +12,7 @@ freeList = []
 fileList = {}
 currPath = ""
 systemName = ""
+suspended = False
 
 
 def init(fsname):
@@ -19,6 +20,7 @@ def init(fsname):
     global freeList
     global systemName
     global currPath
+    global suspended
     systemName = fsname
     SystemSize = os.path.getsize(fsname)
     freeList = [None] * SystemSize
@@ -74,6 +76,9 @@ def open(filename, mode):  # example: filename is a
     global freeList
     global systemName
     global currPath
+    global suspended
+    if suspended:
+        raise Exception('Cannon create. System currently suspended.')
     fileToOpen = None
     if mode not in ['r', 'w']:
         raise Exception("Invalid Mode.")
@@ -224,7 +229,8 @@ def suspend():
     global freeList
     global systemName
     global currPath
-
+    global suspended
+    suspended = True
     for files in fileList.values():
         for file in files:
             if file.open is True:
@@ -242,6 +248,8 @@ def resume(native):
     global freeList
     global systemName
     global currPath
+    global suspended
+    suspended = False
     file = io.open(native, 'r')
     systemSize = pickle.load(file)
     freeList = pickle.load(file)
@@ -366,6 +374,7 @@ def getAbs(currPath, filename):
         mkPath = filename.rsplit('/', 1)[0] + "/"
         filename = filename.rsplit('/', 1)[1]
     return filename, mkPath
+
 def isFD(fd):
     global SystemSize
     global freeList
@@ -381,6 +390,7 @@ def isFD(fd):
         if filename == file.name:
             return file
     raise Exception("No such file descriptor.")
+
 def test_files():
     fs.init("abc.txt")
     create("x", 10)
