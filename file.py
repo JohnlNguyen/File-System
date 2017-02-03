@@ -1,5 +1,5 @@
 class File:
-    def __init__(self, filename, size, path):
+    def __init__(self, filename, size):
         self.name = filename
         self.size = size  # size of file
         self.occupied = 0

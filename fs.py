@@ -33,10 +33,11 @@ def create(filename, nbytes):
     if (nbytes > SystemSize):
         raise Exception('No More Space')
     filename, mkPath = getAbs(currPath, filename)
-    for file in fileList[currPath]:
+    for file in fileList[mkPath]:
         if file.name == filename:
             raise Exception('File name already exists')
-    newFile = File(filename, nbytes, mkPath)
+    newFile = File(filename, nbytes)
+
     fileList[mkPath].append(newFile)  # appended file object to file list
     for index in range(len(freeList)):
         if nbytes == 0:
@@ -51,8 +52,8 @@ def getAbs(currPath, filename):
     absPath = filename.split("/")
     mkPath = currPath
     if (len(absPath) > 1):
-        mkPath = filename.rsplit('/', 2)[0]
-        filename = filename.rsplit('/', 2)[1]
+        mkPath = filename.rsplit('/', 1)[0] + "/"
+        filename = filename.rsplit('/', 1)[1]
     return filename, mkPath
 
 
@@ -77,9 +78,7 @@ def open(filename, mode):  # example: filename is a
         fileToOpen.read = True
     if mode == "w":
         fileToOpen.read = False
-    if mkPath == "/":
-        return mkPath + filename
-    return mkPath + '/' + filename
+    return mkPath + filename
 
 
 def close(fd):
@@ -250,6 +249,8 @@ def chdir(dirname):  # Ex: dirname = '/a/b'
     global freeList
     global systemName
     global currPath
+    if dirname == '.':
+        return
     if dirname == '..':  # Nope
         absPath = currPath.split("/")
         currPath = '/'.join(absPath[:-2]) + '/'
@@ -288,40 +289,42 @@ def deldir(dirname):  # dirname = '/a/b'
     return
 
 
-def listdir(dirname): # '/a/b'
+def listdir(dirname):  # '/a/b'
     global SystemSize
     global freeList
     global systemName
     global currPath
-    absPath = dirname.split("/")
-    if( len(absPath) > 1):
-        lsPath = dirname + "/" # lsPath = '/a/b/'
+    if dirname == '.':
+        lsPath = currPath
+    elif dirname == '..':
+        absPath = currPath.split('/')
+        lsPath = '/'.join(absPath[:-2]) + '/'
     else:
-        lsPath = currPath + dirname + "/"
-    doesDirExist(lsPath, True)
-    # lsPath = '/a/b/'
-    # len(lsPath) = 5
-    # lsPath.split('/') = ['', 'a', 'b' ,'']
+        absPath = dirname.split("/")
+        if (len(absPath) > 1):
+            lsPath = dirname + "/"
+        else:
+            lsPath = currPath + dirname + "/"
+        doesDirExist(lsPath, True)
     alldir = []
-    depth = len(lsPath.split('/')) # depth = 4
-    for key in fileList.keys(): # key = '/a/b/d/f/', '/a/b/e/',
-        if key[:len(lsPath)] == lsPath: # if key[:5] == '/a/b/' = '/a/b/d/f/'
-          directory = key.split('/') # directory = ['', 'a', 'b', 'e', '']
-          if(len(directory)-1 == depth): # 4 -== 4
-          	alldir.append(directory[-2])
-          #alldir.append(directory[len(lsPath)+1])
+    depth = len(lsPath.split('/'))
+    for key in fileList.keys():
+        if key[:len(lsPath)] == lsPath:
+            directory = key.split('/')
+            if (len(directory) - 1 == depth):
+                alldir.append(directory[-2])
     return alldir
 
 
-def doesDirExist(dirPath, itShouldBe): # Ex: dirname = /a/b , itShouldBe = True
+def doesDirExist(dirPath, itShouldBe):  # Ex: dirname = /a/b , itShouldBe = True
     global SystemSize
     global freeList
     global systemName
     global currPath
-    if dirPath not in fileList and itShouldBe is True: # if '/a/b' + 'b' + '/' , False
+    if dirPath not in fileList and itShouldBe is True:  # if '/a/b' + 'b' + '/' , False
         raise Exception('Directory does not exist')
-    if dirPath in fileList and itShouldBe is False: # if '/a/c/' + 'b' + '/', False
-        raise Exception('Directory already exists') # raise this exception
+    if dirPath in fileList and itShouldBe is False:  # if '/a/c/' + 'b' + '/', False
+        raise Exception('Directory already exists')  # raise this exception
 
 
 def suspend():
@@ -354,6 +357,7 @@ def resume():
     systemName = pickle.load(file)
     currPath = pickle.load(file)
 
+
 def testFiles():
     init("abc.txt")
     create("x", 10)
@@ -372,13 +376,23 @@ def testFiles():
 
 
 def testDirs():
+    init("abc.txt")
     mkdir("a")
     mkdir("/a/b")
+    mkdir("/a/c")
+    mkdir("/a/d")
+    mkdir("/a/b/k/d")
+    mkdir("/a/b/f")
     create("/a/b/file.txt", 2)
-    #fd = open("/a/b/file.txt", "r")
+    fd = open("/a/b/file.txt", "r")
+    close(fd)
+    chdir("/a/b")
     print fileList
-    #print fd
+    print currPath
+    print listdir(".")
+    print listdir("/a/b/k")
 
 
-testFiles()
+# testFiles()
 testDirs()
+# getAbs('')
