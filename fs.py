@@ -204,6 +204,7 @@ def delfile(filename):
     global currPath
     filename, mkPath = getAbs(currPath, filename)
     data = get_native()
+    del_fd = None
     if mkPath not in fileList:
         raise Exception("Path doesn't exist.")
     for file in fileList[mkPath]:
@@ -217,11 +218,11 @@ def delfile(filename):
                 del fileList[mkPath][fileIndex]
                 del file
                 break
+    if not del_fd:
+        raise Exception("File doesn't exist")
     for i in range(len(freeList)):
         if freeList[i] == del_fd:
-            data[i] = 'a'
             freeList[i] = None
-    write_to_native(data)
 
 
 def suspend():
@@ -314,14 +315,19 @@ def chdir(dirname):  # Ex: dirname = '/a/b'
             if dirname == '/':  # Yes
                 chPath = '/'  # Yes
             else:
-                if(absPath[0] != ""):
-                    chPath = currPath + dirname + "/"
-                else:
-                    chPath = dirname + "/"
+                chPath = get_abs_path(absPath, currPath, dirname)
         else:
             chPath = currPath + dirname + "/"
         doesDirExist(chPath, True)
         currPath = chPath
+
+
+def get_abs_path(absPath, currPath, dirname):
+    if (absPath[0] != ""):
+        chPath = currPath + dirname + "/"
+    else:
+        chPath = dirname + "/"
+    return chPath
 
 
 def deldir(dirname):  # dirname = '/a/b'
@@ -331,10 +337,7 @@ def deldir(dirname):  # dirname = '/a/b'
     global currPath  # currPath = '/'
     absPath = dirname.split("/")
     if (len(absPath) > 1):
-        if(absPath[0] != ""):
-            delPath = currPath + dirname + "/"
-        else:
-            delPath = dirname + "/"
+        delPath = get_abs_path(absPath, currPath, dirname)
     else:
         delPath = currPath + dirname + "/"
     doesDirExist(delPath, True)  # doesDirExist('/a/b/', True)
@@ -362,10 +365,7 @@ def listdir(dirname):  # '/a/b'
     else:
         absPath = dirname.split("/")
         if (len(absPath) > 1):
-            if(absPath[0] != ""):
-                lsPath = currPath + dirname + "/"
-            else:
-                lsPath = dirname + "/"
+            lsPath = get_abs_path(absPath, currPath, dirname)
         else:
             lsPath = currPath + dirname + "/"
     doesDirExist(lsPath, True)
