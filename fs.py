@@ -124,9 +124,15 @@ def write(fd, writebuf):
         raise Exception("File is read-only")
     if F.open is False:
         raise Exception("File is not open")
-
+    data = get_native()
+    i = 0
+    offset = len(F.content)
+    for index, val in enumerate(freeList):
+        if val == fd and i < len(writebuf):
+            data[index + offset] = writebuf[i]
+            i += 1
+    write_to_native(data)
     F.writeToFile(writebuf)
-
 
 def read(fd, nbytes):
     global SystemSize
@@ -292,7 +298,6 @@ def mkdir(dirname):  # Ex: b
         mkPath = currPath + dirname + "/"  # mkPath = '/a/c/' + 'b' + '/'
     doesDirExist(mkPath, False)
 
-    newDirName = mkPath.split('/')[-2]
     base = '/'.join(mkPath.split('/')[:-2]) + '/'
     if base not in fileList:
         raise Exception('Invalid directory name')
@@ -415,3 +420,6 @@ def isFD(fd):
         if filename == file.name:
             return file
     raise Exception("No such file descriptor.")
+
+
+
