@@ -1,5 +1,8 @@
-# README.TXT
-
+# fs.py file system
+# Joanne Wang 9133360523
+# Jeffrey Tai 998935915
+# John Nguyen 998808398
+# Eric Du 913327304
 
 import io
 import os
@@ -67,7 +70,7 @@ def write_to_native(data):
 def get_native():
     with io.open(systemName, 'r') as native:
         data = native.readlines()
-    data = list(data[0].encode('UTF8'))
+    data = list(''.join(data).encode('UTF8'))
     return data
 
 
@@ -237,17 +240,22 @@ def suspend():
     global systemName
     global currPath
     global suspended
+    global fileList
     suspended = True
     for files in fileList.values():
         for file in files:
             if file.open is True:
                 raise Exception("File(s) still open, cannot suspend.")
+    data = get_native()
     file = io.open(systemName, 'wb')
     pickle.dump(SystemSize, file)
     pickle.dump(freeList, file)
     pickle.dump(systemName, file)
     pickle.dump(currPath, file)
+    pickle.dump(fileList, file)
+    pickle.dump(data, file)
     file.close
+    os.rename(systemName, systemName + '.fssave')
 
 
 def resume(native):
@@ -256,12 +264,16 @@ def resume(native):
     global systemName
     global currPath
     global suspended
+    global fileList
     suspended = False
     file = io.open(native, 'r')
     systemSize = pickle.load(file)
     freeList = pickle.load(file)
     systemName = pickle.load(file)
     currPath = pickle.load(file)
+    fileList = pickle.load(file)
+    data = pickle.load(file)
+    write_to_native(data)
 
 def isdir(dirname):
     global SystemSize
@@ -309,6 +321,7 @@ def chdir(dirname):  # Ex: dirname = '/a/b'
     global freeList
     global systemName
     global currPath
+    global fileList
     if dirname == '.':
         return
     if dirname == '..':  # Nope
@@ -340,6 +353,7 @@ def deldir(dirname):  # dirname = '/a/b'
     global freeList
     global systemName
     global currPath  # currPath = '/'
+    global fileList
     absPath = dirname.split("/")
     if (len(absPath) > 1):
         delPath = get_abs_path(absPath, currPath, dirname)
@@ -353,6 +367,7 @@ def deldir(dirname):  # dirname = '/a/b'
             for val in values:
                 if val.open is True:
                     raise Exception("File(s) still open.")
+                delfile(key + val.name)
             del fileList[key]
     return
 
@@ -362,6 +377,7 @@ def listdir(dirname):  # '/a/b'
     global freeList
     global systemName
     global currPath
+    global fileList
     if dirname == '.':
         lsPath = currPath
     elif dirname == '..':
@@ -389,6 +405,7 @@ def doesDirExist(dirPath, itShouldBe):  # Ex: dirname = /a/b , itShouldBe = True
     global freeList
     global systemName
     global currPath
+    global fileList
     if dirPath not in fileList and itShouldBe is True:  # if '/a/b' + 'b' + '/' , False
         raise Exception('Directory does not exist')
     if dirPath in fileList and itShouldBe is False:  # if '/a/c/' + 'b' + '/', False
@@ -410,6 +427,7 @@ def isFD(fd):
     global freeList
     global systemName
     global currPath
+    global fileList
     dirsp = fd.split('/')
     filename = dirsp[-1]
     dirPath = '/'.join(dirsp[:-1]) + '/'
