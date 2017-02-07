@@ -273,6 +273,7 @@ def resume(native):
     currPath = pickle.load(file)
     fileList = pickle.load(file)
     data = pickle.load(file)
+    os.rename(native, systemName)
     write_to_native(data)
 
 def isdir(dirname):
